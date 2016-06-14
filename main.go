@@ -81,7 +81,7 @@ func angrydance() [3]string {
 	var a [3]string
 	a[0] = ">/D:"
 	a[1] = ">|D:"
-	a[2] = ">\\D"
+	a[2] = ">\\D:"
 	return a
 }
 
