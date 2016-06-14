@@ -28,6 +28,7 @@ type IRCNetworks struct {
 
 type IRCConfig struct {
 	Nick     string
+	Password string
 	Networks map[string]IRCNetworks
 }
 
@@ -49,22 +50,42 @@ func getTitle(url string) string {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return "no"
+		fmt.Println("error:", err)
+		return "error"
 	}
+
 	root, err := html.Parse(resp.Body)
 	if err != nil {
-		return "no"
+		fmt.Println("error:", err)
+		return "error"
 	}
+
 	title, ok := scrape.Find(root, scrape.ByTag(atom.Title))
 
 	if ok {
 		return scrape.Text(title)
 	}
 
-	return "no"
+	return "unknown"
 }
 
-func teddyBot(nick string, config IRCNetworks) {
+func dance() [3]string {
+	var a [3]string
+	a[0] = ":D\\<"
+	a[1] = ":D|<"
+	a[2] = ":D/<"
+	return a
+}
+
+func angrydance() [3]string {
+	var a [3]string
+	a[0] = ">/D:"
+	a[1] = ">|D:"
+	a[2] = ">\\D"
+	return a
+}
+
+func teddyBot(nick string, password string, config IRCNetworks) {
 
 	cfg := irc.NewConfig(nick)
 	cfg.SSL = config.Ssl
@@ -78,10 +99,10 @@ func teddyBot(nick string, config IRCNetworks) {
 	bot.HandleFunc(irc.CONNECTED,
 		func(conn *irc.Conn, line *irc.Line) {
 			conn.Mode(conn.Me().Nick, "+B")
+			bot.Privmsg("NickServ", fmt.Sprintf("identify %s", password))
 			for key, channel := range config.Channels {
 				fmt.Printf("Connecting to channel #%s\n", key)
 				conn.Join(channel.Name + " " + channel.Key)
-				bot.Privmsg(channel.Name, "hello, friends")
 			}
 		})
 
@@ -89,7 +110,16 @@ func teddyBot(nick string, config IRCNetworks) {
 		func(conn *irc.Conn, line *irc.Line) {
 			if strings.HasPrefix(line.Text(), "http") {
 				bot.Privmsg(line.Args[0], getTitle(line.Text()))
+			} else if strings.HasPrefix(line.Text(), "!dance") {
+				for _, moves := range dance() {
+					bot.Privmsg(line.Args[0], moves)
+				}
+			} else if strings.HasPrefix(line.Text(), "!angrydance") {
+				for _, moves := range angrydance() {
+					bot.Privmsg(line.Args[0], moves)
+				}
 			}
+
 		})
 
 	quit := make(chan bool)
@@ -114,6 +144,6 @@ func main() {
 	config := readConfig("config.json")
 
 	for _, network := range config.Networks {
-		teddyBot(config.Nick, network)
+		teddyBot(config.Nick, config.Password, network)
 	}
 }
