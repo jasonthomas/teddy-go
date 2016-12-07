@@ -10,12 +10,6 @@ import (
 	"strings"
 )
 
-type JenkinsCreds struct {
-	ApiToken string
-	BaseUrl  string
-	Username string
-}
-
 type IRCMessage struct {
 	Channel string
 	Msg     string
