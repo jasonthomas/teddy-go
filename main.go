@@ -5,31 +5,33 @@ import (
 	"encoding/json"
 	"fmt"
 	irc "github.com/fluffle/goirc/client"
-	"github.com/yhat/scrape"
-	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
-	"net/http"
+	"log"
 	"os"
-	"runtime"
 	"strings"
 )
 
-type IRCChannels struct {
-	Name string
-	Key  string
+type JenkinsCreds struct {
+	ApiToken string
+	BaseUrl  string
+	Username string
 }
 
-type IRCNetworks struct {
-	Host     string
-	Port     int
-	Ssl      bool
-	Channels map[string]IRCChannels
+type IRCMessage struct {
+	Channel string
+	Msg     string
+}
+
+type IRCChannels struct {
+	Key string
 }
 
 type IRCConfig struct {
 	Nick     string
 	Password string
-	Networks map[string]IRCNetworks
+	Host     string
+	Ssl      bool
+	Port     int
+	Channels map[string]IRCChannels
 }
 
 func readConfig(configFile string) IRCConfig {
@@ -40,110 +42,72 @@ func readConfig(configFile string) IRCConfig {
 	err := decoder.Decode(&config)
 
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Println("Cannot parse config:", err)
+		os.Exit(1)
 	}
 
 	return config
 }
 
-func getTitle(url string) string {
+func Bot(config IRCConfig) {
 
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println("error:", err)
-		return "error"
-	}
+	c := irc.NewConfig(config.Nick, config.Nick, config.Nick)
+	c.SSL = config.Ssl
+	c.Server = config.Host
+	c.SSLConfig = &tls.Config{ServerName: c.Server}
 
-	root, err := html.Parse(resp.Body)
-	if err != nil {
-		fmt.Println("error:", err)
-		return "error"
-	}
+	bot := irc.Client(c)
 
-	title, ok := scrape.Find(root, scrape.ByTag(atom.Title))
+	quit := make(chan bool)
 
-	if ok {
-		return scrape.Text(title)
-	}
-
-	return "unknown"
-}
-
-func dance() [3]string {
-	var a [3]string
-	a[0] = ":D\\<"
-	a[1] = ":D|<"
-	a[2] = ":D/<"
-	return a
-}
-
-func angrydance() [3]string {
-	var a [3]string
-	a[0] = ">/D:"
-	a[1] = ">|D:"
-	a[2] = ">\\D:"
-	return a
-}
-
-func teddyBot(nick string, password string, config IRCNetworks) {
-
-	cfg := irc.NewConfig(nick)
-	cfg.SSL = config.Ssl
-	cfg.SSLConfig = &tls.Config{ServerName: config.Host, InsecureSkipVerify: true}
-	cfg.Server = config.Host
-	cfg.NewNick = func(n string) string { return n + "^" }
-
-	bot := irc.Client(cfg)
-	bot.EnableStateTracking()
-
+	// on CONNECTED identify with NickServ, set mode to bot, connect to channels in config
 	bot.HandleFunc(irc.CONNECTED,
 		func(conn *irc.Conn, line *irc.Line) {
 			conn.Mode(conn.Me().Nick, "+B")
-			bot.Privmsg("NickServ", fmt.Sprintf("identify %s", password))
-			for key, channel := range config.Channels {
-				fmt.Printf("Connecting to channel #%s\n", key)
-				conn.Join(channel.Name + " " + channel.Key)
+			bot.Privmsgf("NickServ", "identify %s", config.Password)
+			fmt.Println(line.Raw)
+			for channel, cinfo := range config.Channels {
+				if cinfo.Key != "" {
+					conn.Join(channel + " " + cinfo.Key)
+				} else {
+					conn.Join(channel)
+				}
 			}
 		})
 
 	bot.HandleFunc(irc.PRIVMSG,
 		func(conn *irc.Conn, line *irc.Line) {
-			if strings.HasPrefix(line.Text(), "http") {
-				bot.Privmsg(line.Args[0], getTitle(line.Text()))
-			} else if strings.HasPrefix(line.Text(), "!dance") {
-				for _, moves := range dance() {
-					bot.Privmsg(line.Args[0], moves)
-				}
-			} else if strings.HasPrefix(line.Text(), "!angrydance") {
-				for _, moves := range angrydance() {
-					bot.Privmsg(line.Args[0], moves)
-				}
+			log.Println(line.Raw)
+			switch {
+			case strings.HasPrefix(line.Args[1], "!quit"):
+				quit <- true
+
 			}
-
 		})
-
-	quit := make(chan bool)
 
 	bot.HandleFunc(irc.DISCONNECTED,
 		func(conn *irc.Conn, line *irc.Line) { quit <- true })
 
 	if err := bot.Connect(); err != nil {
-		fmt.Printf("Connection error: %s\n", err.Error())
+		log.Printf("Connection error: %s\n", err.Error())
 	}
 
-	// go func(line *irc.Line) {
-	// 	fmt.Println(line)
-	// }
+	go danceActions(bot, config.Channels)
 
 	<-quit
 
 }
 
-func main() {
-	runtime.GOMAXPROCS(2)
-	config := readConfig("config.json")
-
-	for _, network := range config.Networks {
-		teddyBot(config.Nick, config.Password, network)
+// sends IRC messages within routines
+func sendMsg(bot *irc.Conn, c chan IRCMessage) {
+	for item := range c {
+		bot.Privmsg(item.Channel, item.Msg)
+		log.Println(item.Channel, item.Msg)
 	}
+
+}
+
+func main() {
+	config := readConfig("config.json")
+	Bot(config)
 }

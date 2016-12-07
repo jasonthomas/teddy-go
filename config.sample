@@ -1,20 +1,12 @@
 {
     "nick": "teddy",
-    "networks": {
-        "test": {
-            "host": "irc.test.com",
-            "port": 6697,
-            "ssl": true,
-            "channels": {
-                "test1":    {
-                    "name": "#test1",
-                    "key": "key1"
-                },
-                "test2":    {
-                    "name": "#test2",
-                    "key": "key2"
-                }
-            }
+    "password": "sample",
+    "host": "irc.test.org",
+    "port": 6697,
+    "ssl": true,
+    "channels": {
+        "#test": {
+            "key": "test1"
         }
     }
 }
