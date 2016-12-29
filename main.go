@@ -93,7 +93,7 @@ func Bot(config IRCConfig) {
 		log.Printf("Connection error: %s\n", err.Error())
 	}
 
-	brain := initializeBrain(config.Brain)
+	brain := initializeBrain()
 	go danceActions(bot, config.Channels)
 	go brainActions(bot, brain, config.Channels)
 
