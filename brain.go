@@ -23,9 +23,9 @@ func brainActions(bot *irc.Conn, brain *cleverbot.Session, channels map[string]I
 	bot.HandleFunc(irc.PRIVMSG,
 		func(conn *irc.Conn, line *irc.Line) {
 			switch {
-			case strings.HasPrefix(line.Args[1], "teddy: "):
+			case strings.Contains(line.Args[1], "teddy"):
 				// Send Cleverbot a message.
-				response, err := brain.Ask(strings.TrimPrefix(line.Args[1], "teddy:"))
+				response, err := brain.Ask(strings.Trim(line.Args[1], "teddy"))
 				if err != nil {
 					log.Fatal(err)
 				}
