@@ -1,18 +1,14 @@
 package main
 
 import (
-	"github.com/CleverbotIO/go-cleverbot.io"
 	irc "github.com/fluffle/goirc/client"
+	cleverbot "github.com/ugjka/cleverbot-go"
 	"log"
 	"strings"
 )
 
-func initializeBrain(creds BrainCreds) (brain *cleverbot.Session) {
-	brain, err := cleverbot.New(creds.Apiuser, creds.Apikey, creds.Apinick)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+func initializeBrain() (brain *cleverbot.Session) {
+	brain = cleverbot.New()
 
 	return
 }
