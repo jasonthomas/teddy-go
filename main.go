@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"flag"
 	"fmt"
 	irc "github.com/fluffle/goirc/client"
 	"log"
@@ -26,13 +27,14 @@ type BrainCreds struct {
 }
 
 type IRCConfig struct {
-	Nick     string
-	Password string
-	Host     string
-	Ssl      bool
-	Port     int
-	Channels map[string]IRCChannels
-	Brain    BrainCreds
+	Nick          string
+	Password      string
+	Host          string
+	Ssl           bool
+	Skipsslverify bool
+	Port          int
+	Channels      map[string]IRCChannels
+	Brain         BrainCreds
 }
 
 func readConfig(configFile string) IRCConfig {
@@ -55,7 +57,7 @@ func Bot(config IRCConfig) {
 	c := irc.NewConfig(config.Nick, config.Nick, config.Nick)
 	c.SSL = config.Ssl
 	c.Server = config.Host
-	c.SSLConfig = &tls.Config{ServerName: c.Server}
+	c.SSLConfig = &tls.Config{ServerName: c.Server, InsecureSkipVerify: config.Skipsslverify}
 
 	bot := irc.Client(c)
 
@@ -111,6 +113,10 @@ func sendMsg(bot *irc.Conn, c chan IRCMessage) {
 }
 
 func main() {
-	config := readConfig("config.json")
+	configFile := flag.String("config", "config.json", "path to config file")
+	flag.Parse()
+
+	config := readConfig(*configFile)
 	Bot(config)
+
 }
