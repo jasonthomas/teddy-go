@@ -8,7 +8,7 @@ import (
 )
 
 func initializeBrain() (brain *cleverbot.Session) {
-	brain = cleverbot.New()
+	brain = cleverbot.New("teddy-api-id")
 
 	return
 }
