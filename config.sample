@@ -4,6 +4,7 @@
     "host": "irc.test.org",
     "port": 6697,
     "ssl": true,
+    "brainkey": "https://www.cleverbot.com/api/",
     "channels": {
         "#test": {
             "key": "test1"
