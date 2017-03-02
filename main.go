@@ -20,12 +20,6 @@ type IRCChannels struct {
 	Key string
 }
 
-type BrainCreds struct {
-	Apiuser string
-	Apikey  string
-	Apinick string
-}
-
 type IRCConfig struct {
 	Nick          string
 	Password      string
@@ -34,7 +28,7 @@ type IRCConfig struct {
 	Skipsslverify bool
 	Port          int
 	Channels      map[string]IRCChannels
-	Brain         BrainCreds
+	BrainKey      string
 }
 
 func readConfig(configFile string) IRCConfig {
@@ -95,7 +89,7 @@ func Bot(config IRCConfig) {
 		log.Printf("Connection error: %s\n", err.Error())
 	}
 
-	brain := initializeBrain()
+	brain := initializeBrain(config.BrainKey)
 	go danceActions(bot, config.Channels)
 	go brainActions(bot, brain, config.Channels)
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func initializeBrain() (brain *cleverbot.Session) {
-	brain = cleverbot.New("teddy-api-id")
+func initializeBrain(key string) (brain *cleverbot.Session) {
+	brain = cleverbot.New(key)
 
 	return
 }
